@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/layout/Layout';
 
 // Pages
 import Login from './pages/Login';
@@ -18,47 +19,20 @@ function App() {
         {/* Public Route */}
         <Route path="/login" element={<Login />} />
 
-        {/* Protected Routes */}
+        {/* Protected Routes wrapped in Layout */}
         <Route
-          path="/"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <Layout />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="/facilities"
-          element={
-            <ProtectedRoute>
-              <Facilities />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/spaces"
-          element={
-            <ProtectedRoute>
-              <Spaces />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/events"
-          element={
-            <ProtectedRoute>
-              <Events />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/lists"
-          element={
-            <ProtectedRoute>
-              <Lists />
-            </ProtectedRoute>
-          }
-        />
+        >
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/facilities" element={<Facilities />} />
+          <Route path="/spaces" element={<Spaces />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/lists" element={<Lists />} />
+        </Route>
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />

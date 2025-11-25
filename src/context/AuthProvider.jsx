@@ -8,63 +8,36 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   
-  // 1. New Ref to track the user ID without triggering re-renders
   const lastUserId = useRef(null);
 
   useEffect(() => {
     let mounted = true;
 
-    // Internal function to handle initial check
-    async function initializeAuth() {
-      try {
-        const currentUser = await authService.getCurrentUser();
-        
-        if (mounted) {
-          // Update the ref so we don't re-trigger in the subscription
-          lastUserId.current = currentUser?.id || null;
-          
-          setUser(currentUser);
-          
-          if (currentUser) {
-            const adminStatus = await authService.isAdmin();
-            if (mounted) setIsAdmin(adminStatus);
-          }
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    // Run initial check
-    initializeAuth();
-
-    // Listen for Auth Changes
+    // Listen for Auth Changes (This handles Initial Load AND Updates)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
 
+        // Ignore token refreshes to prevent flickering
         if (event === 'TOKEN_REFRESHED') return;
 
         const currentUser = session?.user || null;
 
-        // 🛑 FIX: Check if identity actually changed
-        // If the user ID matches what we already have, it's just a session update (like tab focus).
-        // Update the user object (for new tokens) but DO NOT trigger loading/admin check.
+        // Avoid duplicate processing if the user hasn't changed
         if (currentUser?.id === lastUserId.current) {
+          // Just update the object reference, don't re-run admin checks
           setUser(currentUser);
           return; 
         }
 
-        // Identity changed (Login or Logout) -> Update ref and proceed
+        // Update Ref and State
         lastUserId.current = currentUser?.id || null;
         setUser(currentUser);
         
         if (currentUser) {
           setLoading(true);
-          
           try {
+            // Check Admin Status
             const adminStatus = await authService.isAdmin();
             if (mounted) setIsAdmin(adminStatus);
           } catch (error) {
@@ -74,7 +47,7 @@ export function AuthProvider({ children }) {
             if (mounted) setLoading(false);
           }
         } else {
-          // Handle Logout
+          // Not logged in
           if (mounted) {
             setIsAdmin(false);
             setLoading(false);

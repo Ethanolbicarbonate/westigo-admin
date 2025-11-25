@@ -39,14 +39,6 @@ export default function Header({ onMobileToggle }) {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2">
-          <button className="p-2 text-ios-secondaryLabel hover:text-ios-label hover:bg-black/5 rounded-full transition-colors relative">
-            <span className="sr-only">View notifications</span>
-            <Bell className="h-5 w-5" />
-            {/* Notification Dot */}
-            <span className="absolute top-2 right-2.5 h-2 w-2 rounded-full bg-ios-red ring-2 ring-white" />
-          </button>
-        </div>
       </div>
     </header>
   );

@@ -1,20 +1,14 @@
 import { useState, useEffect } from 'react';
-import { 
-  Box, Typography, Button, TextField, InputAdornment, Paper,
-  IconButton, Tooltip, Avatar, Chip, Stack
-} from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
-import AddIcon from '@mui/icons-material/Add';
-import SearchIcon from '@mui/icons-material/Search';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import EventIcon from '@mui/icons-material/Event';
+import { Plus, Search, RefreshCw, Edit, Trash2, Calendar, MapPin } from 'lucide-react';
 
 import { eventService } from '../services/eventService';
 import { showError, showSuccess } from '../utils/toast';
 import { formatDateTime } from '../utils/formatters';
 import EventFormDialog from '../components/events/EventFormDialog';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Card, CardContent, CardHeader } from '../components/ui/Card';
+import { Table, TableHeader, TableRow, TableHead, TableCell } from '../components/ui/Table';
 
 export default function Events() {
   const [events, setEvents] = useState([]);
@@ -71,29 +65,24 @@ export default function Events() {
     try {
       let imageUrl = formData.currentPhotoUrl;
 
-      // 1. Upload new image if provided
       if (formData.imageFile) {
         imageUrl = await eventService.uploadImage(formData.imageFile);
       }
 
-      // 2. Prepare Payload
-      // Note: We MUST convert Date objects to ISO strings for Supabase
       const eventData = {
         name: formData.name,
         description: formData.description,
         location_id: formData.location_id,
         start_date: formData.start_date.toISOString(),
         end_date: formData.end_date.toISOString(),
-        scopes: formData.scopes, // Array of strings
+        scopes: formData.scopes,
         image_url: imageUrl
       };
 
       if (editingEvent) {
-        // UPDATE
         await eventService.update(editingEvent.id, eventData);
         showSuccess('Event updated successfully!');
       } else {
-        // CREATE
         await eventService.create(eventData);
         showSuccess('Event created successfully!');
       }
@@ -109,128 +98,134 @@ export default function Events() {
     }
   };
 
-  // Filter Logic
   const filteredEvents = events.filter((event) =>
     event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (event.spaces?.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const columns = [
-    { 
-      field: 'image_url', headerName: '', width: 60,
-      renderCell: (params) => (
-        <Avatar 
-          variant="rounded" 
-          src={params.value} 
-          alt={params.row.name}
-          sx={{ width: 40, height: 40, bgcolor: 'warning.light' }}
-        >
-          <EventIcon />
-        </Avatar>
-      )
-    },
-    { field: 'name', headerName: 'Event Name', flex: 1.5, minWidth: 200 },
-    { 
-      field: 'location', 
-      headerName: 'Location', 
-      flex: 1, 
-      minWidth: 180,
-      valueGetter: (params, row) => {
-        if (!row.spaces) return 'TBA';
-        const facilityName = row.spaces.facilities?.name;
-        const spaceName = row.spaces.name;
-        return facilityName ? `${facilityName} > ${spaceName}` : spaceName;
-      },
-      renderCell: (params) => (
-        <Typography variant="body2" noWrap title={params.value}>
-          {params.value}
-        </Typography>
-      )
-    },
-    { 
-      field: 'start_date', 
-      headerName: 'Start Date', 
-      width: 180,
-      valueFormatter: (params) => formatDateTime(params.value),
-    },
-    { 
-      field: 'scopes', 
-      headerName: 'Audience', 
-      flex: 1,
-      minWidth: 200,
-      renderCell: (params) => (
-        <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', py: 1 }}>
-          {Array.isArray(params.value) && params.value.map((scope, index) => (
-            <Chip 
-              key={index} 
-              label={scope} 
-              size="small" 
-              variant="outlined" 
-              sx={{ fontSize: '0.7rem' }}
-            />
-          ))}
-        </Stack>
-      )
-    },
-    {
-      field: 'actions', headerName: 'Actions', width: 120, sortable: false,
-      renderCell: (params) => (
-        <Box>
-          <Tooltip title="Edit">
-            <IconButton color="primary" size="small" onClick={() => handleEditClick(params.row)}>
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton color="error" size="small" onClick={() => handleDeleteClick(params.id)}>
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      ),
-    },
-  ];
-
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold">Campus Events</Typography>
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />}
-          onClick={handleAddClick}
-        >
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <p className="text-ios-secondaryLabel mt-1">Manage campus activities and schedules.</p>
+        </div>
+        <Button onClick={handleAddClick}>
+          <Plus className="mr-2 h-4 w-4" />
           Add Event
         </Button>
-      </Box>
+      </div>
 
-      <Paper sx={{ p: 2, height: 600, width: '100%' }}>
-        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-          <TextField
-            size="small"
-            placeholder="Search events..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon color="action" /></InputAdornment>) }}
-            sx={{ flexGrow: 1, maxWidth: 400 }}
-          />
-          <Tooltip title="Refresh List">
-            <IconButton onClick={loadEvents}><RefreshIcon /></IconButton>
-          </Tooltip>
-        </Box>
+      {/* Content */}
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ios-gray2" />
+              <Input 
+                placeholder="Search events..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Button variant="ghost" size="icon" onClick={loadEvents} title="Refresh">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
 
-        <DataGrid
-          rows={filteredEvents}
-          columns={columns}
-          loading={loading}
-          initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
-          pageSizeOptions={[5, 10, 20]}
-          checkboxSelection
-          disableRowSelectionOnClick
-          sx={{ border: 0 }}
-          rowHeight={60}
-        />
-      </Paper>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table className="border-0 shadow-none rounded-none">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px]">Image</TableHead>
+                  <TableHead>Event Name</TableHead>
+                  <TableHead className="hidden sm:table-cell">Location</TableHead>
+                  <TableHead className="hidden md:table-cell">Start Date</TableHead>
+                  <TableHead className="hidden lg:table-cell">Audience</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <tbody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-ios-secondaryLabel">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredEvents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-ios-secondaryLabel">
+                      No events found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredEvents.map((event) => (
+                    <TableRow key={event.id}>
+                      <TableCell>
+                        {event.image_url ? (
+                          <img 
+                            src={event.image_url} 
+                            alt={event.name} 
+                            className="h-10 w-10 rounded-ios object-cover bg-ios-orange/10"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-ios bg-ios-orange/10 flex items-center justify-center text-ios-orange">
+                            <Calendar className="h-5 w-5" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{event.name}</TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <div className="flex items-center text-xs text-ios-secondaryLabel">
+                          <MapPin className="mr-1 h-3 w-3" />
+                          {event.spaces?.facilities?.name ? (
+                            <span>{event.spaces.facilities.name} &gt; {event.spaces.name}</span>
+                          ) : (
+                            <span>TBA</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-ios-label">
+                        {formatDateTime(event.start_date)}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {event.scopes?.map((scope, i) => (
+                            <span key={i} className="inline-flex items-center rounded-full bg-ios-gray6 px-2 py-0.5 text-[10px] font-medium text-ios-secondaryLabel">
+                              {scope}
+                            </span>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleEditClick(event)}
+                          >
+                            <Edit className="h-4 w-4 text-ios-blue" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDeleteClick(event.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-ios-red" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </tbody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
       
       <EventFormDialog 
         open={isDialogOpen}
@@ -239,6 +234,6 @@ export default function Events() {
         loading={saving}
         initialData={editingEvent}
       />
-    </Box>
+    </div>
   );
 }

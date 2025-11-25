@@ -1,23 +1,23 @@
 import { useEffect, useState } from 'react';
-import { 
-  Dialog, DialogTitle, DialogContent, DialogActions, 
-  Button, TextField, Grid, Box, Typography, 
-  MenuItem, IconButton, CircularProgress,
-  FormGroup, FormControlLabel, Checkbox, FormHelperText, FormControl, FormLabel
-} from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Upload, Trash2, ChevronDown } from 'lucide-react';
 
 import { eventSchema } from '../../utils/validators';
 import { SCOPES } from '../../utils/constants';
 import { spaceService } from '../../services/spaceService';
 import { showError } from '../../utils/toast';
+import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+
+// Helper to format Date object to "YYYY-MM-DDTHH:mm" string for input value
+const toDateTimeLocal = (date) => {
+  if (!date) return '';
+  const d = new Date(date);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+};
 
 export default function EventFormDialog({ open, onClose, onSubmit, loading, initialData }) {
   const [spaces, setSpaces] = useState([]);
@@ -39,23 +39,21 @@ export default function EventFormDialog({ open, onClose, onSubmit, loading, init
       name: '',
       description: '',
       location_id: '',
-      start_date: null,
-      end_date: null,
-      scopes: [], // Array for multi-select
+      start_date: '',
+      end_date: '',
+      scopes: [],
     }
   });
 
-  // Watch scopes to handle checkbox logic manually if needed
   const selectedScopes = watch('scopes') || [];
 
-  // 1. Fetch Spaces for Location Dropdown
+  // 1. Fetch Locations
   useEffect(() => {
     if (open) {
       const fetchSpaces = async () => {
         setLoadingSpaces(true);
         try {
           const data = await spaceService.getAll();
-          // Sort nicely by Facility Name, then Space Name
           const sorted = data.sort((a, b) => {
             const facA = a.facilities?.name || '';
             const facB = b.facilities?.name || '';
@@ -73,20 +71,18 @@ export default function EventFormDialog({ open, onClose, onSubmit, loading, init
     }
   }, [open]);
 
-  // 2. Handle Edit/Reset State
+  // 2. Handle Edit/Reset
   useEffect(() => {
     if (open) {
       if (initialData) {
-        // Parse dates strings back to Date objects
-        const start = initialData.start_date ? new Date(initialData.start_date) : null;
-        const end = initialData.end_date ? new Date(initialData.end_date) : null;
-
         reset({
           name: initialData.name,
           description: initialData.description || '',
           location_id: initialData.location_id || '',
-          start_date: start,
-          end_date: end,
+          // Important: Convert DB date string to Date object for validator
+          // But Inputs need strings (handled via toDateTimeLocal in render or controller)
+          start_date: initialData.start_date ? new Date(initialData.start_date) : null,
+          end_date: initialData.end_date ? new Date(initialData.end_date) : null,
           scopes: initialData.scopes || [],
         });
         setPreviewUrl(initialData.image_url);
@@ -105,7 +101,6 @@ export default function EventFormDialog({ open, onClose, onSubmit, loading, init
     }
   }, [open, initialData, reset]);
 
-  // 3. Image Cleanup
   useEffect(() => {
     return () => {
       if (previewUrl && previewUrl.startsWith('blob:')) {
@@ -127,7 +122,6 @@ export default function EventFormDialog({ open, onClose, onSubmit, loading, init
     setPreviewUrl(null);
   };
 
-  // Helper to toggle scopes in the array
   const handleScopeToggle = (scope) => {
     const current = selectedScopes;
     const newScopes = current.includes(scope)
@@ -144,193 +138,178 @@ export default function EventFormDialog({ open, onClose, onSubmit, loading, init
     });
   };
 
+  const footer = (
+    <>
+      <Button type="submit" form="event-form" isLoading={loading}>
+        {initialData ? 'Update Event' : 'Save Event'}
+      </Button>
+      <Button variant="ghost" onClick={onClose} disabled={loading}>
+        Cancel
+      </Button>
+    </>
+  );
+
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold' }}>
-          {initialData ? 'Edit Event' : 'Add New Event'}
-        </DialogTitle>
+    <Modal
+      isOpen={open}
+      onClose={onClose}
+      title={initialData ? 'Edit Event' : 'Add New Event'}
+      className="max-w-3xl"
+      footer={footer}
+    >
+      <form id="event-form" onSubmit={handleSubmit(handleFormSubmit)} className="grid grid-cols-1 md:grid-cols-12 gap-6">
         
-        <form onSubmit={handleSubmit(handleFormSubmit)}>
-          <DialogContent dividers>
-            <Grid container spacing={3}>
-              
-              {/* Left Column: Details */}
-              <Grid item xs={12} md={7}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Event Name"
-                      {...register('name')}
-                      error={!!errors.name}
-                      helperText={errors.name?.message}
-                      disabled={loading}
-                    />
-                  </Grid>
+        {/* Left Column: Details */}
+        <div className="md:col-span-7 space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ios-label">Event Name</label>
+            <Input
+              placeholder="e.g., Freshman Orientation"
+              {...register('name')}
+              error={errors.name?.message}
+              disabled={loading}
+            />
+          </div>
 
-                  <Grid item xs={12}>
-                    <Controller
-                      name="location_id"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          select
-                          fullWidth
-                          label="Location (Space)"
-                          error={!!errors.location_id}
-                          helperText={errors.location_id?.message}
-                          disabled={loading || loadingSpaces}
-                          SelectProps={{ native: false }}
-                        >
-                          {loadingSpaces ? (
-                            <MenuItem disabled><CircularProgress size={20} /></MenuItem>
-                          ) : (
-                            spaces.map((space) => (
-                              <MenuItem key={space.id} value={space.id}>
-                                {space.facilities?.name} &gt; {space.name}
-                              </MenuItem>
-                            ))
-                          )}
-                        </TextField>
-                      )}
-                    />
-                  </Grid>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ios-label">Location</label>
+            <div className="relative">
+              <Controller
+                name="location_id"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    {...field}
+                    disabled={loading || loadingSpaces}
+                    className="flex w-full appearance-none rounded-ios border border-transparent bg-ios-bg px-3 py-2 text-sm text-ios-label shadow-ios-sm focus:outline-none focus:ring-2 focus:ring-ios-blue disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select a location...</option>
+                    {spaces.map((space) => (
+                      <option key={space.id} value={space.id}>
+                        {space.facilities?.name} &gt; {space.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ios-gray2 pointer-events-none" />
+            </div>
+            {errors.location_id && <p className="text-xs text-ios-red">{errors.location_id.message}</p>}
+          </div>
 
-                  <Grid item xs={6}>
-                    <Controller
-                      name="start_date"
-                      control={control}
-                      render={({ field }) => (
-                        <DateTimePicker
-                          label="Start Date & Time"
-                          value={field.value}
-                          onChange={(date) => field.onChange(date)}
-                          slotProps={{
-                            textField: { 
-                              fullWidth: true,
-                              error: !!errors.start_date,
-                              helperText: errors.start_date?.message
-                            }
-                          }}
-                          disabled={loading}
-                        />
-                      )}
-                    />
-                  </Grid>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ios-label">Start Date</label>
+              <Controller
+                name="start_date"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <Input
+                    type="datetime-local"
+                    value={toDateTimeLocal(value)}
+                    onChange={(e) => onChange(new Date(e.target.value))}
+                    error={errors.start_date?.message}
+                    disabled={loading}
+                  />
+                )}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-ios-label">End Date</label>
+              <Controller
+                name="end_date"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <Input
+                    type="datetime-local"
+                    value={toDateTimeLocal(value)}
+                    onChange={(e) => onChange(new Date(e.target.value))}
+                    error={errors.end_date?.message}
+                    disabled={loading}
+                  />
+                )}
+              />
+            </div>
+          </div>
 
-                  <Grid item xs={6}>
-                    <Controller
-                      name="end_date"
-                      control={control}
-                      render={({ field }) => (
-                        <DateTimePicker
-                          label="End Date & Time"
-                          value={field.value}
-                          onChange={(date) => field.onChange(date)}
-                          slotProps={{
-                            textField: { 
-                              fullWidth: true,
-                              error: !!errors.end_date,
-                              helperText: errors.end_date?.message
-                            }
-                          }}
-                          disabled={loading}
-                        />
-                      )}
-                    />
-                  </Grid>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ios-label">Description</label>
+            <textarea
+              className="flex w-full rounded-ios border border-transparent bg-ios-bg px-3 py-2 text-sm text-ios-label placeholder:text-ios-gray2 shadow-ios-sm focus:outline-none focus:ring-2 focus:ring-ios-blue disabled:cursor-not-allowed disabled:opacity-50 min-h-[100px]"
+              placeholder="Event details..."
+              {...register('description')}
+              disabled={loading}
+            />
+            {errors.description && <p className="text-xs text-ios-red">{errors.description.message}</p>}
+          </div>
+        </div>
 
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Description"
-                      multiline
-                      rows={3}
-                      {...register('description')}
-                      error={!!errors.description}
-                      helperText={errors.description?.message}
-                      disabled={loading}
-                    />
-                  </Grid>
-                </Grid>
-              </Grid>
-
-              {/* Right Column: Scopes & Image */}
-              <Grid item xs={12} md={5}>
-                {/* Scopes Section */}
-                <Box sx={{ mb: 3 }}>
-                  <FormControl error={!!errors.scopes} component="fieldset" variant="standard">
-                    <FormLabel component="legend">Target Audience</FormLabel>
-                    <FormGroup sx={{ maxHeight: 200, overflowY: 'auto', pl: 1 }}>
-                      {SCOPES.map((scope) => (
-                        <FormControlLabel
-                          key={scope}
-                          control={
-                            <Checkbox 
-                              checked={selectedScopes.includes(scope)} 
-                              onChange={() => handleScopeToggle(scope)}
-                              size="small"
-                            />
-                          }
-                          label={<Typography variant="body2">{scope}</Typography>}
-                        />
-                      ))}
-                    </FormGroup>
-                    <FormHelperText>{errors.scopes?.message}</FormHelperText>
-                  </FormControl>
-                </Box>
-
-                {/* Image Upload */}
-                <Box sx={{ border: '1px dashed grey', p: 2, borderRadius: 1, textAlign: 'center' }}>
-                  {!previewUrl ? (
-                    <>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        Event Banner
-                      </Typography>
-                      <Button
-                        component="label"
-                        variant="outlined"
-                        size="small"
-                        startIcon={<CloudUploadIcon />}
-                        disabled={loading}
-                      >
-                        Select Image
-                        <input type="file" hidden accept="image/*" onChange={handleImageSelect} />
-                      </Button>
-                    </>
-                  ) : (
-                    <Box sx={{ position: 'relative' }}>
-                      <img 
-                        src={previewUrl} 
-                        alt="Preview" 
-                        style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '4px' }} 
+        {/* Right Column: Scopes & Image */}
+        <div className="md:col-span-5 space-y-4">
+          {/* Audience Scopes */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ios-label">Target Audience</label>
+            <div className="rounded-ios border border-transparent bg-ios-bg p-3 h-[180px] overflow-y-auto shadow-ios-sm">
+              <div className="space-y-2">
+                {SCOPES.map((scope) => (
+                  <label key={scope} className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${selectedScopes.includes(scope) ? 'bg-ios-blue border-ios-blue' : 'border-ios-gray3 bg-white'}`}>
+                      <input 
+                        type="checkbox"
+                        className="hidden"
+                        checked={selectedScopes.includes(scope)} 
+                        onChange={() => handleScopeToggle(scope)}
                       />
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={handleRemoveImage}
-                        sx={{ position: 'absolute', top: 5, right: 5, bgcolor: 'rgba(255,255,255,0.8)' }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  )}
-                </Box>
+                      {selectedScopes.includes(scope) && (
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-sm text-ios-label group-hover:text-ios-blue transition-colors">{scope}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            {errors.scopes && <p className="text-xs text-ios-red">{errors.scopes.message}</p>}
+          </div>
 
-              </Grid>
-            </Grid>
-          </DialogContent>
-          
-          <DialogActions>
-            <Button onClick={onClose} disabled={loading}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={loading}>
-              {loading ? 'Saving...' : initialData ? 'Update Event' : 'Save Event'}
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
-    </LocalizationProvider>
+          {/* Image Upload */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-ios-label">Event Banner</label>
+            <div className="rounded-ios border border-dashed border-ios-gray3 p-4 text-center hover:bg-ios-gray6/50 transition-colors">
+              {!previewUrl ? (
+                <div className="flex flex-col items-center gap-2">
+                  <Upload className="h-8 w-8 text-ios-gray2" />
+                  <div className="text-xs text-ios-secondaryLabel">
+                    <label className="cursor-pointer font-medium text-ios-blue hover:underline">
+                      Upload a file
+                      <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
+                    </label>
+                    <p>PNG, JPG</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="relative">
+                  <img 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    className="h-32 w-full object-cover rounded-ios"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 rounded-full bg-black/50 p-1.5 text-white hover:bg-ios-red transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </Modal>
   );
 }

@@ -1,34 +1,30 @@
 import { useState, useEffect } from 'react';
-import { 
-  Box, Typography, Paper, Grid, Tab, Tabs, 
-  List, ListItem, ListItemText, ListItemIcon, 
-  Collapse, IconButton, Chip, Divider, Button, Skeleton 
-} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { 
+  Building2, 
+  MapPin, 
+  Calendar, 
+  ChevronDown, 
+  ChevronUp, 
+  Edit, 
+  ExternalLink 
+} from 'lucide-react';
 
-// Icons
-import BusinessIcon from '@mui/icons-material/Business';
-import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
-import EventIcon from '@mui/icons-material/Event';
-import ExpandLess from '@mui/icons-material/ExpandLess';
-import ExpandMore from '@mui/icons-material/ExpandMore';
-import EditIcon from '@mui/icons-material/Edit';
-import LaunchIcon from '@mui/icons-material/Launch';
-
-// Services & Utils
 import { facilityService } from '../services/facilityService';
 import { spaceService } from '../services/spaceService';
 import { eventService } from '../services/eventService';
 import { formatDateTime } from '../utils/formatters';
 import { showError } from '../utils/toast';
+import { Button } from '../components/ui/Button';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 
 export default function Lists() {
   const navigate = useNavigate();
-  const [tabIndex, setTabIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState('structure'); // 'structure' or 'schedule'
   const [loading, setLoading] = useState(true);
   
   // Data
-  const [hierarchy, setHierarchy] = useState([]); // Facilities with nested spaces
+  const [hierarchy, setHierarchy] = useState([]); 
   const [events, setEvents] = useState([]);
   
   // Collapse state for facilities
@@ -41,14 +37,12 @@ export default function Lists() {
   const loadMasterData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch all raw data in parallel
       const [facilitiesData, spacesData, eventsData] = await Promise.all([
         facilityService.getAll(),
         spaceService.getAll(),
         eventService.getAll()
       ]);
 
-      // 2. Nest Spaces inside Facilities
       const nestedData = facilitiesData.map(facility => {
         return {
           ...facility,
@@ -59,7 +53,6 @@ export default function Lists() {
       setHierarchy(nestedData);
       setEvents(eventsData);
       
-      // Open all facilities by default
       const initialOpenState = {};
       facilitiesData.forEach(f => { initialOpenState[f.id] = true; });
       setOpenFacilities(initialOpenState);
@@ -76,164 +69,164 @@ export default function Lists() {
     setOpenFacilities(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const handleTabChange = (event, newValue) => {
-    setTabIndex(newValue);
-  };
-
-  // --- RENDER HELPERS ---
-
   if (loading) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom><Skeleton width={200} /></Typography>
-        <Paper sx={{ p: 2 }}>
-          <Skeleton variant="rectangular" height={400} />
-        </Paper>
-      </Box>
+      <div className="flex items-center justify-center h-64">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-ios-blue border-t-transparent" />
+      </div>
     );
   }
 
   return (
-    <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold">Master List</Typography>
-        <Typography variant="body2" color="text.secondary">
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <p className="text-ios-secondaryLabel mt-1">
           Unified view of all campus assets and schedules.
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      <Paper sx={{ width: '100%', mb: 2 }}>
-        <Tabs
-          value={tabIndex}
-          onChange={handleTabChange}
-          indicatorColor="primary"
-          textColor="primary"
-          variant="fullWidth"
+      {/* Tabs */}
+      <div className="flex p-1 bg-ios-gray6/50 rounded-ios-lg w-full max-w-md mx-auto sm:mx-0">
+        <button
+          onClick={() => setActiveTab('structure')}
+          className={`flex-1 flex items-center justify-center py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+            activeTab === 'structure' 
+              ? 'bg-white text-ios-label shadow-ios-sm' 
+              : 'text-ios-secondaryLabel hover:text-ios-label'
+          }`}
         >
-          <Tab icon={<BusinessIcon />} iconPosition="start" label="Campus Structure" />
-          <Tab icon={<EventIcon />} iconPosition="start" label="Event Schedule" />
-        </Tabs>
-        
-        <Divider />
+          <Building2 className="w-4 h-4 mr-2" />
+          Campus Structure
+        </button>
+        <button
+          onClick={() => setActiveTab('schedule')}
+          className={`flex-1 flex items-center justify-center py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+            activeTab === 'schedule' 
+              ? 'bg-white text-ios-label shadow-ios-sm' 
+              : 'text-ios-secondaryLabel hover:text-ios-label'
+          }`}
+        >
+          <Calendar className="w-4 h-4 mr-2" />
+          Event Schedule
+        </button>
+      </div>
 
-        {/* TAB 1: CAMPUS STRUCTURE (Facilities > Spaces) */}
-        {tabIndex === 0 && (
-          <Box sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button size="small" startIcon={<LaunchIcon />} onClick={() => navigate('/facilities')}>
-                Manage Facilities
-              </Button>
-            </Box>
-            
-            <List component="nav">
-              {hierarchy.map((facility) => (
-                <Box key={facility.id} sx={{ mb: 1, border: '1px solid #eee', borderRadius: 1 }}>
-                  {/* Facility Header */}
-                  <ListItem button onClick={() => handleToggle(facility.id)} sx={{ bgcolor: 'grey.50' }}>
-                    <ListItemIcon>
-                      <BusinessIcon color="primary" />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={
-                        <Typography variant="subtitle1" fontWeight="bold">
-                          {facility.name}
-                        </Typography>
-                      } 
-                      secondary={`${facility.spaces.length} Spaces • ${facility.description || 'No description'}`}
-                    />
-                    {openFacilities[facility.id] ? <ExpandLess /> : <ExpandMore />}
-                  </ListItem>
+      {/* TAB 1: CAMPUS STRUCTURE */}
+      {activeTab === 'structure' && (
+        <div className="space-y-4 animate-enter">
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" onClick={() => navigate('/facilities')}>
+              Manage Facilities <ExternalLink className="ml-2 h-3 w-3" />
+            </Button>
+          </div>
+          
+          <div className="space-y-4">
+            {hierarchy.map((facility) => (
+              <Card key={facility.id} className="overflow-hidden">
+                <button 
+                  onClick={() => handleToggle(facility.id)}
+                  className="w-full flex items-center justify-between p-4 bg-ios-bg/30 hover:bg-ios-bg/50 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-ios-blue/10 rounded-ios text-ios-blue">
+                      <Building2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-ios-label">{facility.name}</h3>
+                      <p className="text-xs text-ios-secondaryLabel mt-0.5">
+                        {facility.spaces.length} Spaces • {facility.description || 'No description'}
+                      </p>
+                    </div>
+                  </div>
+                  {openFacilities[facility.id] ? (
+                    <ChevronUp className="w-5 h-5 text-ios-secondaryLabel" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-ios-secondaryLabel" />
+                  )}
+                </button>
+                
+                {openFacilities[facility.id] && (
+                  <div className="divide-y divide-ios-separator/50 border-t border-ios-separator/50">
+                    {facility.spaces.length > 0 ? (
+                      facility.spaces.map((space) => (
+                        <div key={space.id} className="flex items-center justify-between p-4 pl-12 bg-white hover:bg-ios-gray6/20 transition-colors group">
+                          <div className="flex items-center gap-3">
+                            <MapPin className="w-4 h-4 text-ios-gray2" />
+                            <div>
+                              <p className="text-sm font-medium text-ios-label">{space.name}</p>
+                              <p className="text-xs text-ios-secondaryLabel">{space.floor_level || 'Ground Floor'}</p>
+                            </div>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => navigate('/spaces')}
+                          >
+                            Edit <Edit className="ml-1.5 h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 pl-12 text-sm text-ios-secondaryLabel italic">
+                        No spaces recorded for this facility.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: EVENTS SCHEDULE */}
+      {activeTab === 'schedule' && (
+        <div className="space-y-4 animate-enter">
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" onClick={() => navigate('/events')}>
+              Manage Events <ExternalLink className="ml-2 h-3 w-3" />
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {events.map((event) => (
+              <Card key={event.id} className="flex flex-col h-full hover:shadow-ios-lg transition-shadow duration-300">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start gap-2">
+                    <CardTitle className="text-base leading-snug line-clamp-2">
+                      {event.name}
+                    </CardTitle>
+                    {event.scopes?.[0] && (
+                      <span className="inline-flex items-center rounded-full bg-ios-blue/10 px-2 py-0.5 text-[10px] font-medium text-ios-blue shrink-0">
+                        {event.scopes[0]}
+                      </span>
+                    )}
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="flex-1 flex flex-col">
+                  <p className="text-sm text-ios-secondaryLabel line-clamp-3 flex-1 mb-4">
+                    {event.description || 'No description provided.'}
+                  </p>
                   
-                  {/* Nested Spaces */}
-                  <Collapse in={openFacilities[facility.id]} timeout="auto" unmountOnExit>
-                    <List component="div" disablePadding>
-                      {facility.spaces.length > 0 ? (
-                        facility.spaces.map((space) => (
-                          <ListItem key={space.id} sx={{ pl: 4, borderTop: '1px dashed #eee' }}>
-                            <ListItemIcon>
-                              <MeetingRoomIcon fontSize="small" color="action" />
-                            </ListItemIcon>
-                            <ListItemText 
-                              primary={space.name} 
-                              secondary={space.floor_level ? `${space.floor_level}` : 'Ground Floor'} 
-                            />
-                            <Chip 
-                              label="Edit" 
-                              size="small" 
-                              variant="outlined" 
-                              onClick={() => navigate('/spaces')}
-                              icon={<EditIcon />}
-                              sx={{ cursor: 'pointer' }}
-                            />
-                          </ListItem>
-                        ))
-                      ) : (
-                        <ListItem sx={{ pl: 4 }}>
-                          <ListItemText 
-                            secondary="No spaces recorded for this facility." 
-                            sx={{ fontStyle: 'italic' }} 
-                          />
-                        </ListItem>
-                      )}
-                    </List>
-                  </Collapse>
-                </Box>
-              ))}
-            </List>
-          </Box>
-        )}
-
-        {/* TAB 2: EVENTS SCHEDULE */}
-        {tabIndex === 1 && (
-          <Box sx={{ p: 2 }}>
-             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-              <Button size="small" startIcon={<LaunchIcon />} onClick={() => navigate('/events')}>
-                Manage Events
-              </Button>
-            </Box>
-
-            <Grid container spacing={2}>
-              {events.map((event) => (
-                <Grid item xs={12} md={6} lg={4} key={event.id}>
-                  <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Typography variant="subtitle1" fontWeight="bold">
-                        {event.name}
-                      </Typography>
-                      <Chip 
-                        label={event.scopes && event.scopes[0]} 
-                        size="small" 
-                        color="primary" 
-                        variant="soft" 
-                      />
-                    </Box>
-                    
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexGrow: 1 }}>
-                      {event.description || 'No description provided.'}
-                    </Typography>
-                    
-                    <Divider sx={{ my: 1 }} />
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                      <EventIcon fontSize="small" color="action" />
-                      <Typography variant="caption" fontWeight="bold">
-                        {formatDateTime(event.start_date)}
-                      </Typography>
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <MeetingRoomIcon fontSize="small" color="action" />
-                      <Typography variant="caption">
-                         {event.spaces?.facilities?.name} &gt; {event.spaces?.name || 'TBA'}
-                      </Typography>
-                    </Box>
-                  </Paper>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        )}
-      </Paper>
-    </Box>
+                  <div className="space-y-2 pt-3 border-t border-ios-separator/50">
+                    <div className="flex items-center gap-2 text-xs text-ios-label">
+                      <Calendar className="w-3.5 h-3.5 text-ios-gray2" />
+                      <span className="font-medium">{formatDateTime(event.start_date)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-ios-secondaryLabel">
+                      <MapPin className="w-3.5 h-3.5 text-ios-gray2" />
+                      <span>{event.spaces?.facilities?.name} &gt; {event.spaces?.name || 'TBA'}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css'; // Import styles
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -37,6 +39,9 @@ function App() {
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      
+      {/* Global Toast Container */}
+      <ToastContainer />
     </BrowserRouter>
   );
 }

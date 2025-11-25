@@ -1,19 +1,47 @@
-import { Outlet } from 'react-router-dom';
-import { Box, CssBaseline, Drawer, AppBar, Toolbar, Typography, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { 
+  Box, 
+  CssBaseline, 
+  Drawer, 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  Divider, 
+  List, 
+  ListItem, 
+  ListItemButton, 
+  ListItemIcon, 
+  ListItemText, 
+  Avatar 
+} from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import BusinessIcon from '@mui/icons-material/Business'; // Facilities
-import MeetingRoomIcon from '@mui/icons-material/MeetingRoom'; // Spaces
+import BusinessIcon from '@mui/icons-material/Business'; 
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom'; 
 import EventIcon from '@mui/icons-material/Event';
 import ViewListIcon from '@mui/icons-material/ViewList';
-import { useNavigate, useLocation } from 'react-router-dom';
+import LogoutIcon from '@mui/icons-material/Logout';
+
+import { useAuth } from '../../hooks/useAuth';
+import { showSuccess, showError } from '../../utils/toast';
 
 const drawerWidth = 240;
 
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
 
-  // Simple menu items configuration
+  const handleLogout = async () => {
+    try {
+      await logout();
+      showSuccess('Logged out successfully');
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      showError('Failed to logout. Please try again.');
+    }
+  };
+
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Facilities', icon: <BusinessIcon />, path: '/facilities' },
@@ -41,11 +69,18 @@ export default function Layout() {
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+          [`& .MuiDrawer-paper`]: { 
+            width: drawerWidth, 
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column'
+          },
         }}
       >
         <Toolbar /> {/* Spacing for the AppBar */}
-        <Box sx={{ overflow: 'auto' }}>
+        
+        {/* Navigation Items (Pushed to top) */}
+        <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
           <List>
             {menuItems.map((item) => (
               <ListItem key={item.text} disablePadding>
@@ -53,7 +88,7 @@ export default function Layout() {
                   selected={location.pathname === item.path}
                   onClick={() => navigate(item.path)}
                 >
-                  <ListItemIcon>
+                  <ListItemIcon color={location.pathname === item.path ? "primary" : "inherit"}>
                     {item.icon}
                   </ListItemIcon>
                   <ListItemText primary={item.text} />
@@ -61,15 +96,43 @@ export default function Layout() {
               </ListItem>
             ))}
           </List>
-          <Divider />
-          {/* Logout will go here later */}
+        </Box>
+        
+        {/* User Profile & Logout (Pinned to bottom) */}
+        <Divider />
+        <Box sx={{ p: 2, bgcolor: 'background.default' }}>
+          {user && (
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1.5 }}>
+              <Avatar 
+                sx={{ width: 32, height: 32, bgcolor: 'secondary.main', fontSize: '0.875rem' }}
+              >
+                {user.email ? user.email.charAt(0).toUpperCase() : 'A'}
+              </Avatar>
+              <Typography variant="caption" noWrap sx={{ fontWeight: 500, maxWidth: 140 }} title={user.email}>
+                {user.email}
+              </Typography>
+            </Box>
+          )}
+          
+          <ListItemButton 
+            onClick={handleLogout} 
+            sx={{ 
+              borderRadius: 1, 
+              color: 'error.main',
+              '&:hover': { bgcolor: 'error.lighter', color: 'error.dark' } 
+            }}
+          >
+            <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+              <LogoutIcon />
+            </ListItemIcon>
+            <ListItemText primary="Logout" />
+          </ListItemButton>
         </Box>
       </Drawer>
 
       {/* Main Content Area */}
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-        <Toolbar /> {/* Spacing for the AppBar */}
-        {/* This is where the child routes (Dashboard, etc.) render */}
+        <Toolbar /> 
         <Outlet />
       </Box>
     </Box>

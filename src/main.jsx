@@ -4,13 +4,16 @@ import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import App from './App.jsx'
 import theme from './config/theme'
-import './index.css' // Keep this for any custom overrides
+import { AuthProvider } from './context/AuthProvider' // Updated import
+import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>
-      <CssBaseline /> {/* Resets CSS to be consistent */}
-      <App />
+      <CssBaseline />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </ThemeProvider>
   </React.StrictMode>,
 )

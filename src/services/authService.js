@@ -1,28 +1,68 @@
 import { supabase } from '../config/supabase';
 
 export const authService = {
-  // Login with email and password
+  /**
+   * Log in with email and password, then verify admin status.
+   * Throws an error if auth fails OR if user is not an admin.
+   */
   async login(email, password) {
-    // TODO: Implement Supabase signInWithPassword
-    console.log('Login requested for:', email);
-    return { user: { email }, error: null }; // Mock response
+    // 1. Authenticate with Supabase Auth
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    if (error) throw error;
+    
+    // 2. Verify "is_admin" status in the public.users table
+    // Note: This column needs to exist in your database (we will address this in Sub-Phase 2.10)
+    const { data: userData, error: profileError } = await supabase
+      .from('users')
+      .select('is_admin')
+      .eq('id', data.user.id)
+      .single();
+    
+    // If database query fails or is_admin is false/null
+    if (profileError || !userData?.is_admin) {
+      // Immediately sign out to kill the session
+      await this.logout(); 
+      throw new Error('Not authorized. Admin access required.');
+    }
+    
+    return data;
   },
-
-  // Logout
+  
+  /**
+   * Sign out the current user
+   */
   async logout() {
-    // TODO: Implement Supabase signOut
-    console.log('Logout requested');
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   },
-
-  // Get current session
-  async getSession() {
-    // TODO: Implement getSession
-    return null;
+  
+  /**
+   * Get the current active session user from Supabase
+   */
+  async getCurrentUser() {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
   },
-
-  // Check if user is admin
-  async isAdmin(userId) {
-    // TODO: Query 'users' table for is_admin flag
-    return false;
+  
+  /**
+   * Check if the currently logged-in user is an admin
+   * Useful for session persistence checks
+   */
+  async isAdmin() {
+    const user = await this.getCurrentUser();
+    if (!user) return false;
+    
+    const { data, error } = await supabase
+      .from('users')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+    
+    if (error) return false;
+    return data?.is_admin || false;
   }
 };

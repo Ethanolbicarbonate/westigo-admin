@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Lock, Eye, EyeOff, LogIn } from 'lucide-react';
+import { Eye, EyeOff, LogIn } from 'lucide-react';
 
 import { loginSchema } from '../utils/validators';
 import { useAuth } from '../hooks/useAuth';
 import { showSuccess, showError } from '../utils/toast';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
+import { Card, CardHeader, CardContent } from '../components/ui/Card';
+import logo from '../assets/westigo_admin_logo.svg';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -70,13 +71,16 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-ios-bg p-4">
       <Card className="w-full max-w-md shadow-ios-lg animate-enter bg-white">
         <CardHeader className="items-center space-y-3 pb-2">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-ios-blue shadow-ios">
-            <Lock className="h-7 w-7 text-white" />
+          {/* Replaced Icon with Logo */}
+          <div className="flex justify-center mb-2">
+            <img 
+              src={logo} 
+              alt="Westigo Admin" 
+              className="h-16 w-auto object-contain" 
+            />
           </div>
           <div className="text-center">
-            <CardTitle className="text-2xl font-bold tracking-tight text-ios-label">
-              Westigo Admin
-            </CardTitle>
+            {/* Removed redundant Westigo Title */}
             <p className="text-sm text-ios-secondaryLabel mt-2">
               Sign in to manage campus data
             </p>

@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { showSuccess, showError } from '../../utils/toast';
 import { cn } from '../../utils/cn';
+import logo from '../../assets/westigo_admin_logo.svg'; // Import the logo
 
 export default function Sidebar({ onClose, isMobile }) {
   const navigate = useNavigate();
@@ -39,15 +40,9 @@ export default function Sidebar({ onClose, isMobile }) {
   return (
     <div className="flex flex-col h-full bg-ios-card border-r border-ios-separator">
       {/* Logo Section */}
-      <div className="flex items-center justify-between h-16 px-6 border-b border-ios-separator/50">
-        <div className="flex items-center gap-2">
-          {/* Simple Logo Placeholder */}
-          <div className="w-8 h-8 bg-ios-blue rounded-lg flex items-center justify-center text-white font-bold">
-            W
-          </div>
-          <span className="text-lg font-semibold text-ios-label tracking-tight">
-            Westigo
-          </span>
+      <div className="flex items-center justify-center h-16 px-6 border-b border-ios-separator/50">
+        <div className="flex items-center">
+          <img src={logo} alt="Westigo Admin Logo" className="h-8 w-auto" />
         </div>
         {isMobile && (
           <button 

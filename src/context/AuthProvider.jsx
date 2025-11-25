@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AuthContext } from './AuthContext';
 import { authService } from '../services/authService';
 import { supabase } from '../config/supabase';
@@ -7,6 +7,9 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // 1. New Ref to track the user ID without triggering re-renders
+  const lastUserId = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -17,6 +20,9 @@ export function AuthProvider({ children }) {
         const currentUser = await authService.getCurrentUser();
         
         if (mounted) {
+          // Update the ref so we don't re-trigger in the subscription
+          lastUserId.current = currentUser?.id || null;
+          
           setUser(currentUser);
           
           if (currentUser) {
@@ -39,16 +45,23 @@ export function AuthProvider({ children }) {
       async (event, session) => {
         if (!mounted) return;
 
-        // 🛑 FIX: Ignore token refreshes to prevent random loading screens on tab switch
-        if (event === 'TOKEN_REFRESHED') {
-          return;
-        }
+        if (event === 'TOKEN_REFRESHED') return;
 
         const currentUser = session?.user || null;
+
+        // 🛑 FIX: Check if identity actually changed
+        // If the user ID matches what we already have, it's just a session update (like tab focus).
+        // Update the user object (for new tokens) but DO NOT trigger loading/admin check.
+        if (currentUser?.id === lastUserId.current) {
+          setUser(currentUser);
+          return; 
+        }
+
+        // Identity changed (Login or Logout) -> Update ref and proceed
+        lastUserId.current = currentUser?.id || null;
         setUser(currentUser);
         
         if (currentUser) {
-          // Only show loading if we are actually signing in/changing users
           setLoading(true);
           
           try {
@@ -56,13 +69,12 @@ export function AuthProvider({ children }) {
             if (mounted) setIsAdmin(adminStatus);
           } catch (error) {
             console.error('Error checking admin status:', error);
-            // Default to false on error to be safe
             if (mounted) setIsAdmin(false);
           } finally {
-            // ✅ FIX: "finally" ensures the loading screen ALWAYS turns off
             if (mounted) setLoading(false);
           }
         } else {
+          // Handle Logout
           if (mounted) {
             setIsAdmin(false);
             setLoading(false);

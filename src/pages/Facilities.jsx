@@ -1,19 +1,13 @@
 import { useState, useEffect } from 'react';
-import { 
-  Box, Typography, Button, TextField, InputAdornment, Paper,
-  IconButton, Tooltip, Avatar
-} from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
-import AddIcon from '@mui/icons-material/Add';
-import SearchIcon from '@mui/icons-material/Search';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import BusinessIcon from '@mui/icons-material/Business';
+import { Plus, Search, RefreshCw, Edit, Trash2, MapPin } from 'lucide-react';
 
 import { facilityService } from '../services/facilityService';
 import { showError, showSuccess } from '../utils/toast';
 import FacilityFormDialog from '../components/facilities/FacilityFormDialog';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { Table, TableHeader, TableRow, TableHead, TableCell } from '../components/ui/Table';
 
 export default function Facilities() {
   const [facilities, setFacilities] = useState([]);
@@ -42,19 +36,16 @@ export default function Facilities() {
     loadFacilities();
   }, []);
 
-  // Open Modal for Create
   const handleAddClick = () => {
-    setEditingFacility(null); // Clear edit state
+    setEditingFacility(null);
     setIsDialogOpen(true);
   };
 
-  // Open Modal for Edit
   const handleEditClick = (facility) => {
     setEditingFacility(facility);
     setIsDialogOpen(true);
   };
 
-  // Handle Delete
   const handleDeleteClick = async (id) => {
     if (window.confirm('Are you sure you want to delete this facility? This will also delete all associated spaces.')) {
       try {
@@ -68,13 +59,11 @@ export default function Facilities() {
     }
   };
 
-  // Handle Save (Create or Update)
   const handleSaveFacility = async (formData) => {
     setSaving(true);
     try {
-      let photoUrl = formData.currentPhotoUrl; // Start with existing/null
+      let photoUrl = formData.currentPhotoUrl;
 
-      // 1. If new file uploaded, upload it
       if (formData.imageFile) {
         photoUrl = await facilityService.uploadImage(formData.imageFile);
       }
@@ -88,11 +77,9 @@ export default function Facilities() {
       };
 
       if (editingFacility) {
-        // UPDATE
         await facilityService.update(editingFacility.id, facilityData);
         showSuccess('Facility updated successfully!');
       } else {
-        // CREATE
         await facilityService.create(facilityData);
         showSuccess('Facility created successfully!');
       }
@@ -112,110 +99,122 @@ export default function Facilities() {
     facility.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const columns = [
-    { 
-      field: 'photo_url', headerName: '', width: 60,
-      renderCell: (params) => (
-        <Avatar 
-          variant="rounded" 
-          src={params.value} 
-          alt={params.row.name}
-          sx={{ width: 40, height: 40 }}
-        >
-          <BusinessIcon />
-        </Avatar>
-      )
-    },
-    { field: 'name', headerName: 'Name', flex: 1, minWidth: 150 },
-    { 
-      field: 'description', headerName: 'Description', flex: 2, minWidth: 250,
-      renderCell: (params) => (
-        <Typography variant="body2" noWrap title={params.value}>
-          {params.value || '-'}
-        </Typography>
-      )
-    },
-    { 
-      field: 'location', headerName: 'Location', width: 180,
-      valueGetter: (params, row) => {
-        if (!row.latitude || !row.longitude) return 'N/A';
-        return `${Number(row.latitude).toFixed(4)}, ${Number(row.longitude).toFixed(4)}`;
-      }
-    },
-    {
-      field: 'actions', headerName: 'Actions', width: 120, sortable: false,
-      renderCell: (params) => (
-        <Box>
-          <Tooltip title="Edit">
-            <IconButton 
-              color="primary" 
-              size="small"
-              onClick={() => handleEditClick(params.row)}
-            >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton 
-              color="error" 
-              size="small"
-              onClick={() => handleDeleteClick(params.id)}
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      ),
-    },
-  ];
-
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold">Facilities</Typography>
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />}
-          onClick={handleAddClick}
-        >
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <p className="text-ios-secondaryLabel mt-1">Manage campus buildings and locations.</p>
+        </div>
+        <Button onClick={handleAddClick}>
+          <Plus className="mr-2 h-4 w-4" />
           Add Facility
         </Button>
-      </Box>
+      </div>
 
-      <Paper sx={{ p: 2, height: 600, width: '100%' }}>
-        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-          <TextField
-            size="small"
-            placeholder="Search facilities..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon color="action" /></InputAdornment>) }}
-            sx={{ flexGrow: 1, maxWidth: 400 }}
-          />
-          <Tooltip title="Refresh List">
-            <IconButton onClick={loadFacilities}><RefreshIcon /></IconButton>
-          </Tooltip>
-        </Box>
-
-        <DataGrid
-          rows={filteredFacilities}
-          columns={columns}
-          loading={loading}
-          initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
-          pageSizeOptions={[5, 10, 20]}
-          checkboxSelection
-          disableRowSelectionOnClick
-          sx={{ border: 0 }}
-        />
-      </Paper>
+      {/* Content */}
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ios-gray2" />
+              <Input 
+                placeholder="Search facilities..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Button variant="ghost" size="icon" onClick={loadFacilities} title="Refresh">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table className="border-0 shadow-none rounded-none">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px]">Image</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="hidden md:table-cell">Description</TableHead>
+                  <TableHead className="hidden sm:table-cell">Location</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <tbody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-ios-secondaryLabel">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredFacilities.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-ios-secondaryLabel">
+                      No facilities found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredFacilities.map((facility) => (
+                    <TableRow key={facility.id}>
+                      <TableCell>
+                        {facility.photo_url ? (
+                          <img 
+                            src={facility.photo_url} 
+                            alt={facility.name} 
+                            className="h-10 w-10 rounded-ios object-cover bg-ios-gray6"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-ios bg-ios-gray6 flex items-center justify-center text-ios-gray2">
+                            <MapPin className="h-5 w-5" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{facility.name}</TableCell>
+                      <TableCell className="hidden md:table-cell text-ios-secondaryLabel max-w-xs truncate">
+                        {facility.description || '-'}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell text-xs text-ios-secondaryLabel font-mono">
+                        {facility.latitude && facility.longitude 
+                          ? `${Number(facility.latitude).toFixed(4)}, ${Number(facility.longitude).toFixed(4)}`
+                          : 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleEditClick(facility)}
+                          >
+                            <Edit className="h-4 w-4 text-ios-blue" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDeleteClick(facility.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-ios-red" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </tbody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       <FacilityFormDialog 
         open={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onSubmit={handleSaveFacility}
         loading={saving}
-        initialData={editingFacility} // Pass the facility to edit
+        initialData={editingFacility}
       />
-    </Box>
+    </div>
   );
 }

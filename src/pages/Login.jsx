@@ -2,26 +2,14 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Box, 
-  Button, 
-  TextField, 
-  Typography, 
-  Paper, 
-  Container, 
-  Avatar, 
-  Alert, 
-  InputAdornment, 
-  IconButton,
-  CircularProgress
-} from '@mui/material';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 
 import { loginSchema } from '../utils/validators';
 import { useAuth } from '../hooks/useAuth';
 import { showSuccess, showError } from '../utils/toast';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -54,8 +42,6 @@ export default function Login() {
     }
   });
 
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
-
   const onSubmit = async (data) => {
     setFormError('');
     try {
@@ -74,105 +60,99 @@ export default function Login() {
   // 2. Prevent form flash while checking session
   if (authLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex items-center justify-center h-screen bg-ios-bg">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-ios-blue border-t-transparent" />
+      </div>
     );
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: 'background.default',
-      }}
-    >
-      <Container component="main" maxWidth="xs">
-        <Paper
-          elevation={3}
-          sx={{
-            p: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            borderRadius: 2,
-          }}
-        >
-          <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
-            <LockOutlinedIcon />
-          </Avatar>
-          <Typography component="h1" variant="h5" fontWeight="bold" color="primary">
-            Westigo Admin
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Sign in to manage campus data
-          </Typography>
+    <div className="flex min-h-screen items-center justify-center bg-ios-bg p-4">
+      <Card className="w-full max-w-md shadow-ios-lg animate-enter bg-white">
+        <CardHeader className="items-center space-y-3 pb-2">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-ios-blue shadow-ios">
+            <Lock className="h-7 w-7 text-white" />
+          </div>
+          <div className="text-center">
+            <CardTitle className="text-2xl font-bold tracking-tight text-ios-label">
+              Westigo Admin
+            </CardTitle>
+            <p className="text-sm text-ios-secondaryLabel mt-2">
+              Sign in to manage campus data
+            </p>
+          </div>
+        </CardHeader>
 
+        <CardContent>
           {formError && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+            <div className="mb-4 rounded-ios bg-ios-red/10 p-3 text-sm text-ios-red border border-ios-red/20">
               {formError}
-            </Alert>
+            </div>
           )}
 
-          <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 1, width: '100%' }}>
-            <TextField
-              margin="normal"
-              fullWidth
-              id="email"
-              label="Email Address"
-              autoComplete="email"
-              autoFocus
-              disabled={isSubmitting}
-              {...register('email')}
-              error={!!errors.email}
-              helperText={errors.email?.message}
-            />
-            <TextField
-              margin="normal"
-              fullWidth
-              name="password"
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              id="password"
-              autoComplete="current-password"
-              disabled={isSubmitting}
-              {...register('password')}
-              error={!!errors.password}
-              helperText={errors.password?.message}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="toggle password visibility"
-                      onClick={handleClickShowPassword}
-                      edge="end"
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-            
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-ios-label">
+                Email Address
+              </label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="admin@westigo.edu"
+                autoComplete="email"
+                autoFocus
+                disabled={isSubmitting}
+                error={errors.email?.message}
+                {...register('email')}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-ios-label">
+                Password
+              </label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  disabled={isSubmitting}
+                  error={errors.password?.message}
+                  {...register('password')}
+                  className="pr-10" 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-ios-gray2 hover:text-ios-label focus:outline-none"
+                  tabIndex="-1"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+            </div>
+
             <Button
               type="submit"
-              fullWidth
-              variant="contained"
-              disabled={isSubmitting}
-              sx={{ mt: 3, mb: 2, py: 1.5, fontSize: '1rem' }}
+              className="w-full mt-6"
+              size="lg"
+              isLoading={isSubmitting}
             >
-              {isSubmitting ? 'Signing in...' : 'Sign In'}
+              {!isSubmitting && <LogIn className="mr-2 h-4 w-4" />}
+              Sign In
             </Button>
-          </Box>
-        </Paper>
-        
-        <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 4 }}>
-          © {new Date().getFullYear()} West Visayas State University
-        </Typography>
-      </Container>
-    </Box>
+          </form>
+
+          <div className="mt-8 text-center text-xs text-ios-tertiaryLabel">
+            © {new Date().getFullYear()} West Visayas State University
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

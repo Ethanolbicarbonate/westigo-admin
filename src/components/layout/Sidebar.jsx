@@ -1,29 +1,18 @@
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  Box, 
-  Drawer, 
+  LayoutDashboard, 
+  Building2, 
+  MapPin, 
+  Calendar, 
   List, 
-  ListItem, 
-  ListItemButton, 
-  ListItemIcon, 
-  ListItemText, 
-  Divider, 
-  Avatar, 
-  Typography, 
-  Toolbar 
-} from '@mui/material';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import BusinessIcon from '@mui/icons-material/Business';
-import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
-import EventIcon from '@mui/icons-material/Event';
-import LogoutIcon from '@mui/icons-material/Logout';
-import ViewListIcon from '@mui/icons-material/ViewList'; // Add Master List Icon
-import { useNavigate, useLocation } from 'react-router-dom';
+  LogOut, 
+  X 
+} from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { showSuccess, showError } from '../../utils/toast';
+import { cn } from '../../utils/cn';
 
-const drawerWidth = 260;
-
-export default function Sidebar({ mobileOpen, onClose }) {
+export default function Sidebar({ onClose, isMobile }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
@@ -39,125 +28,88 @@ export default function Sidebar({ mobileOpen, onClose }) {
     }
   };
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Facilities', icon: <BusinessIcon />, path: '/facilities' },
-    { text: 'Spaces', icon: <MeetingRoomIcon />, path: '/spaces' },
-    { text: 'Events', icon: <EventIcon />, path: '/events' },
-    { text: 'Master List', icon: <ViewListIcon />, path: '/lists' },
+  const navigation = [
+    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Facilities', href: '/facilities', icon: Building2 },
+    { name: 'Spaces', href: '/spaces', icon: MapPin },
+    { name: 'Events', href: '/events', icon: Calendar },
+    { name: 'Master List', href: '/lists', icon: List },
   ];
 
-  // Define the drawer content once to reuse it
-  const drawerContent = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* 1. Header / Logo Area */}
-      <Toolbar sx={{ display: 'flex', alignItems: 'center', px: 2 }}>
-        <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
-          Westigo Admin
-        </Typography>
-      </Toolbar>
-      <Divider />
-
-      {/* 2. User Info Section */}
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, bgcolor: 'background.default' }}>
-        <Avatar sx={{ bgcolor: 'secondary.main', width: 40, height: 40 }}>
-          {user?.email?.[0]?.toUpperCase() || 'A'}
-        </Avatar>
-        <Box sx={{ overflow: 'hidden' }}>
-          <Typography variant="subtitle2" noWrap title={user?.email} sx={{ fontWeight: 600 }}>
-            {user?.email || 'Admin'}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Administrator
-          </Typography>
-        </Box>
-      </Box>
-      <Divider />
-
-      {/* 3. Navigation Menu */}
-      <Box sx={{ flexGrow: 1, overflow: 'auto', py: 1 }}>
-        <List>
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <ListItem key={item.text} disablePadding sx={{ mb: 0.5, px: 1 }}>
-                <ListItemButton 
-                  selected={isActive}
-                  onClick={() => {
-                    navigate(item.path);
-                    if (onClose) onClose(); // Close drawer on mobile selection
-                  }}
-                  sx={{
-                    borderRadius: 1,
-                    '&.Mui-selected': {
-                      bgcolor: 'primary.light',
-                      color: 'primary.contrastText',
-                      '&:hover': { bgcolor: 'primary.main' },
-                      '& .MuiListItemIcon-root': { color: 'inherit' }
-                    }
-                  }}
-                >
-                  <ListItemIcon sx={{ minWidth: 40, color: isActive ? 'inherit' : 'text.secondary' }}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={item.text} 
-                    primaryTypographyProps={{ fontWeight: isActive ? 600 : 400 }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            );
-          })}
-        </List>
-      </Box>
-
-      {/* 4. Logout */}
-      <Divider />
-      <Box sx={{ p: 1 }}>
-        <ListItemButton 
-          onClick={handleLogout} 
-          sx={{ 
-            borderRadius: 1,
-            color: 'error.main', 
-            '&:hover': { bgcolor: 'error.lighter', color: 'error.dark' } 
-          }}
-        >
-          <ListItemIcon sx={{ minWidth: 40, color: 'error.main' }}>
-            <LogoutIcon />
-          </ListItemIcon>
-          <ListItemText primary="Logout" />
-        </ListItemButton>
-      </Box>
-    </Box>
-  );
-
   return (
-    <Box component="nav" sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}>
-      {/* Mobile Drawer (Temporary) */}
-      <Drawer
-        variant="temporary"
-        open={mobileOpen}
-        onClose={onClose}
-        ModalProps={{ keepMounted: true }} // Better open performance on mobile
-        sx={{
-          display: { xs: 'block', sm: 'none' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-        }}
-      >
-        {drawerContent}
-      </Drawer>
+    <div className="flex flex-col h-full bg-ios-card border-r border-ios-separator">
+      {/* Logo Section */}
+      <div className="flex items-center justify-between h-16 px-6 border-b border-ios-separator/50">
+        <div className="flex items-center gap-2">
+          {/* Simple Logo Placeholder */}
+          <div className="w-8 h-8 bg-ios-blue rounded-lg flex items-center justify-center text-white font-bold">
+            W
+          </div>
+          <span className="text-lg font-semibold text-ios-label tracking-tight">
+            Westigo
+          </span>
+        </div>
+        {isMobile && (
+          <button 
+            onClick={onClose}
+            className="p-2 -mr-2 text-ios-gray hover:text-ios-label transition-colors"
+          >
+            <X size={24} />
+          </button>
+        )}
+      </div>
 
-      {/* Desktop Drawer (Permanent) */}
-      <Drawer
-        variant="permanent"
-        sx={{
-          display: { xs: 'none', sm: 'block' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-        }}
-        open
-      >
-        {drawerContent}
-      </Drawer>
-    </Box>
+      {/* Navigation Links */}
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        {navigation.map((item) => {
+          const isActive = location.pathname === item.href;
+          return (
+            <NavLink
+              key={item.name}
+              to={item.href}
+              onClick={isMobile ? onClose : undefined}
+              className={({ isActive }) => cn(
+                "group flex items-center px-3 py-2.5 text-sm font-medium rounded-ios transition-all duration-200 ease-in-out",
+                isActive 
+                  ? "bg-ios-blue text-white shadow-ios-sm" 
+                  : "text-ios-secondaryLabel hover:bg-ios-gray6 hover:text-ios-label"
+              )}
+            >
+              <item.icon 
+                className={cn(
+                  "mr-3 h-5 w-5 shrink-0 transition-colors",
+                  isActive ? "text-white" : "text-ios-gray group-hover:text-ios-label"
+                )} 
+              />
+              {item.name}
+            </NavLink>
+          );
+        })}
+      </nav>
+
+      {/* User Profile & Logout */}
+      <div className="p-4 border-t border-ios-separator/50 bg-ios-bg/30">
+        <div className="flex items-center gap-3 mb-3 px-2">
+          <div className="h-9 w-9 rounded-full bg-ios-gray4 flex items-center justify-center text-ios-label font-semibold text-sm">
+            {user?.email?.[0]?.toUpperCase() || 'A'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-ios-label truncate">
+              {user?.email}
+            </p>
+            <p className="text-xs text-ios-secondaryLabel truncate">
+              Administrator
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="flex items-center w-full px-2 py-2 text-sm font-medium text-ios-red rounded-ios hover:bg-ios-red/10 transition-colors"
+        >
+          <LogOut className="mr-3 h-5 w-5" />
+          Sign Out
+        </button>
+      </div>
+    </div>
   );
 }

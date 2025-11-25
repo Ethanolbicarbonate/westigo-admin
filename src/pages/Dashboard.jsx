@@ -1,23 +1,21 @@
 import { useState, useEffect } from 'react';
-import { 
-  Box, Typography, Grid, Paper, Button, Skeleton, 
-  List, ListItem, ListItemText, ListItemIcon, Divider, Chip 
-} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { 
+  Building2, 
+  MapPin, 
+  Calendar, 
+  Plus, 
+  ArrowRight 
+} from 'lucide-react';
 
-// Icons
-import AddIcon from '@mui/icons-material/Add';
-import BusinessIcon from '@mui/icons-material/Business';
-import EventIcon from '@mui/icons-material/Event';
-import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-
-// Services & Utils
 import { facilityService } from '../services/facilityService';
 import { spaceService } from '../services/spaceService';
 import { eventService } from '../services/eventService';
 import { formatDateTime } from '../utils/formatters';
 import { showError } from '../utils/toast';
+
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -66,197 +64,139 @@ export default function Dashboard() {
     }
   };
 
+  const StatCard = ({ title, value, icon: Icon, colorClass }) => (
+    <Card>
+      <CardContent className="p-6 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-ios-secondaryLabel uppercase tracking-wide">
+            {title}
+          </p>
+          <h3 className="text-3xl font-bold text-ios-label mt-1">
+            {loading ? '...' : value}
+          </h3>
+        </div>
+        <div className={`p-3 rounded-full ${colorClass}`}>
+          <Icon className="h-6 w-6 text-white" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
-    <Box>
+    <div className="space-y-6">
       {/* Welcome Section */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
+      <div>
+        <h1 className="text-2xl font-bold text-ios-label tracking-tight">
           Dashboard
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
+        </h1>
+        <p className="text-ios-secondaryLabel mt-1">
           Overview of campus assets and upcoming schedules.
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Facilities Card */}
-        <Grid item xs={12} sm={4}>
-          <Paper sx={{ p: 3, borderRadius: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box>
-              <Typography variant="body2" color="text.secondary" fontWeight="bold">
-                TOTAL FACILITIES
-              </Typography>
-              <Typography variant="h3" fontWeight="bold" sx={{ mt: 1, color: 'primary.main' }}>
-                {loading ? <Skeleton width={50} /> : stats.facilities}
-              </Typography>
-            </Box>
-            <Box sx={{ bgcolor: 'primary.lighter', p: 1.5, borderRadius: '50%', color: 'primary.main' }}>
-              <BusinessIcon fontSize="large" />
-            </Box>
-          </Paper>
-        </Grid>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard 
+          title="Total Facilities" 
+          value={stats.facilities} 
+          icon={Building2} 
+          colorClass="bg-ios-blue" 
+        />
+        <StatCard 
+          title="Total Spaces" 
+          value={stats.spaces} 
+          icon={MapPin} 
+          colorClass="bg-ios-indigo" 
+        />
+        <StatCard 
+          title="Active Events" 
+          value={stats.events} 
+          icon={Calendar} 
+          colorClass="bg-ios-orange" 
+        />
+      </div>
 
-        {/* Spaces Card */}
-        <Grid item xs={12} sm={4}>
-          <Paper sx={{ p: 3, borderRadius: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box>
-              <Typography variant="body2" color="text.secondary" fontWeight="bold">
-                TOTAL SPACES
-              </Typography>
-              <Typography variant="h3" fontWeight="bold" sx={{ mt: 1, color: 'info.main' }}>
-                {loading ? <Skeleton width={50} /> : stats.spaces}
-              </Typography>
-            </Box>
-            <Box sx={{ bgcolor: 'info.lighter', p: 1.5, borderRadius: '50%', color: 'info.main' }}>
-              <MeetingRoomIcon fontSize="large" />
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* Events Card */}
-        <Grid item xs={12} sm={4}>
-          <Paper sx={{ p: 3, borderRadius: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box>
-              <Typography variant="body2" color="text.secondary" fontWeight="bold">
-                ACTIVE EVENTS
-              </Typography>
-              <Typography variant="h3" fontWeight="bold" sx={{ mt: 1, color: 'warning.main' }}>
-                {loading ? <Skeleton width={50} /> : stats.events}
-              </Typography>
-            </Box>
-            <Box sx={{ bgcolor: 'warning.lighter', p: 1.5, borderRadius: '50%', color: 'warning.main' }}>
-              <EventIcon fontSize="large" />
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      <Grid container spacing={3}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Quick Actions */}
-        <Grid item xs={12} md={5}>
-          <Paper sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-            <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Quick Actions
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Button 
-                variant="contained" 
-                size="large"
-                startIcon={<AddIcon />}
-                onClick={() => navigate('/events')}
-                fullWidth
-                sx={{ justifyContent: 'flex-start', py: 1.5 }}
-              >
-                Create New Event
-              </Button>
-              <Button 
-                variant="outlined" 
-                size="large"
-                startIcon={<AddIcon />}
-                onClick={() => navigate('/facilities')}
-                fullWidth
-                sx={{ justifyContent: 'flex-start', py: 1.5 }}
-              >
-                Add New Facility
-              </Button>
-               <Button 
-                variant="outlined" 
-                size="large"
-                startIcon={<AddIcon />}
-                onClick={() => navigate('/spaces')}
-                fullWidth
-                sx={{ justifyContent: 'flex-start', py: 1.5 }}
-              >
-                Add New Space
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button 
+              variant="primary" 
+              className="w-full justify-start" 
+              onClick={() => navigate('/events')}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create New Event
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start" 
+              onClick={() => navigate('/facilities')}
+            >
+              <Building2 className="mr-2 h-4 w-4" />
+              Add New Facility
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start" 
+              onClick={() => navigate('/spaces')}
+            >
+              <MapPin className="mr-2 h-4 w-4" />
+              Add New Space
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Upcoming Events List */}
-        <Grid item xs={12} md={7}>
-          <Paper sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Typography variant="h6" fontWeight="bold">
-                Upcoming Events
-              </Typography>
-              <Button endIcon={<ArrowForwardIcon />} onClick={() => navigate('/events')}>
-                View All
-              </Button>
-            </Box>
-            <Divider sx={{ mb: 1 }} />
-
-            <List>
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Upcoming Events</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/events')}>
+              View All <ArrowRight className="ml-1 h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="divide-y divide-ios-separator/50">
               {loading ? (
-                // Loading Skeleton
-                [1, 2, 3].map((i) => (
-                  <ListItem key={i}>
-                    <ListItemText primary={<Skeleton width="60%" />} secondary={<Skeleton width="40%" />} />
-                  </ListItem>
-                ))
+                <div className="py-8 text-center text-ios-secondaryLabel">Loading...</div>
               ) : upcomingEvents.length > 0 ? (
                 upcomingEvents.map((event) => (
-                  <ListItem 
-                    key={event.id} 
-                    disableGutters 
-                    sx={{ 
-                      py: 1.5, 
-                      borderBottom: '1px solid #f0f0f0',
-                      '&:last-child': { borderBottom: 'none' }
-                    }}
-                  >
-                    <Box 
-                      sx={{ 
-                        mr: 2, 
-                        bgcolor: 'primary.lighter', 
-                        color: 'primary.main',
-                        borderRadius: 1,
-                        p: 1,
-                        minWidth: 50,
-                        textAlign: 'center'
-                      }}
-                    >
-                      <Typography variant="caption" fontWeight="bold" display="block" sx={{ lineHeight: 1 }}>
-                        {new Date(event.start_date).toLocaleString('default', { month: 'short' }).toUpperCase()}
-                      </Typography>
-                      <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1 }}>
+                  <div key={event.id} className="flex items-center py-4 first:pt-0 last:pb-0">
+                    <div className="flex-shrink-0 w-12 h-12 bg-ios-blue/10 rounded-ios flex flex-col items-center justify-center text-ios-blue">
+                      <span className="text-[10px] font-bold uppercase">
+                        {new Date(event.start_date).toLocaleString('default', { month: 'short' })}
+                      </span>
+                      <span className="text-lg font-bold leading-none">
                         {new Date(event.start_date).getDate()}
-                      </Typography>
-                    </Box>
-                    <ListItemText
-                      primary={
-                        <Typography variant="subtitle2" fontWeight="bold">
-                          {event.name}
-                        </Typography>
-                      }
-                      secondary={
-                        <Typography variant="caption" color="text.secondary">
-                          {formatDateTime(event.start_date)} • {event.spaces?.name || 'TBA'}
-                        </Typography>
-                      }
-                    />
-                    <Chip 
-                      label={event.scopes && event.scopes[0]} 
-                      size="small" 
-                      variant="outlined"
-                      sx={{ ml: 1, display: { xs: 'none', sm: 'flex' } }}
-                    />
-                  </ListItem>
+                      </span>
+                    </div>
+                    <div className="ml-4 flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ios-label truncate">
+                        {event.name}
+                      </p>
+                      <p className="text-xs text-ios-secondaryLabel truncate">
+                        {formatDateTime(event.start_date)} • {event.spaces?.name || 'TBA'}
+                      </p>
+                    </div>
+                    <div className="ml-4 hidden sm:block">
+                      <span className="inline-flex items-center rounded-full bg-ios-gray6 px-2.5 py-0.5 text-xs font-medium text-ios-secondaryLabel">
+                        {event.scopes?.[0] || 'General'}
+                      </span>
+                    </div>
+                  </div>
                 ))
               ) : (
-                <Box sx={{ py: 4, textAlign: 'center' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No upcoming events scheduled.
-                  </Typography>
-                </Box>
+                <div className="py-8 text-center text-ios-secondaryLabel">
+                  No upcoming events scheduled.
+                </div>
               )}
-            </List>
-          </Paper>
-        </Grid>
-      </Grid>
-    </Box>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

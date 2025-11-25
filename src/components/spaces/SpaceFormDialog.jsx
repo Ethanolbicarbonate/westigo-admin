@@ -1,24 +1,13 @@
 import { useEffect, useState } from 'react';
-import { 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  Button, 
-  TextField, 
-  Grid, 
-  Box, 
-  Typography, 
-  MenuItem, 
-  IconButton,
-  CircularProgress
-} from '@mui/material';
-import { useForm, Controller } from 'react-hook-form'; // Controller is needed for MUI Select
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Upload, Trash2, ChevronDown } from 'lucide-react';
+
 import { spaceSchema } from '../../utils/validators';
 import { facilityService } from '../../services/facilityService';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
 import { showError } from '../../utils/toast';
 
 export default function SpaceFormDialog({ open, onClose, onSubmit, loading, initialData }) {
@@ -30,7 +19,7 @@ export default function SpaceFormDialog({ open, onClose, onSubmit, loading, init
   const {
     register,
     handleSubmit,
-    control, // Needed for Select/Dropdown
+    control,
     reset,
     formState: { errors },
   } = useForm({
@@ -116,138 +105,128 @@ export default function SpaceFormDialog({ open, onClose, onSubmit, loading, init
     });
   };
 
+  const footer = (
+    <>
+      <Button type="submit" form="space-form" isLoading={loading}>
+        {initialData ? 'Update Space' : 'Save Space'}
+      </Button>
+      <Button variant="ghost" onClick={onClose} disabled={loading}>
+        Cancel
+      </Button>
+    </>
+  );
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 'bold' }}>
-        {initialData ? 'Edit Space' : 'Add New Space'}
-      </DialogTitle>
-      
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
-        <DialogContent dividers>
-          <Grid container spacing={2}>
-            
-            {/* Parent Facility Dropdown */}
-            <Grid item xs={12}>
-              <Controller
-                name="parent_facility_id"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    select
-                    fullWidth
-                    label="Parent Facility"
-                    error={!!errors.parent_facility_id}
-                    helperText={errors.parent_facility_id?.message}
-                    disabled={loading || loadingFacilities}
-                    SelectProps={{ native: false }} // Use MUI Menu items
-                  >
-                    {loadingFacilities ? (
-                      <MenuItem disabled><CircularProgress size={20} /></MenuItem>
-                    ) : (
-                      facilities.map((facility) => (
-                        <MenuItem key={facility.id} value={facility.id}>
-                          {facility.name}
-                        </MenuItem>
-                      ))
-                    )}
-                  </TextField>
-                )}
-              />
-            </Grid>
-
-            {/* Name */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Space Name (e.g., Room 101, Dean's Office)"
-                {...register('name')}
-                error={!!errors.name}
-                helperText={errors.name?.message}
-                disabled={loading}
-              />
-            </Grid>
-
-            {/* Floor Level */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Floor Level (e.g., 1st Floor)"
-                {...register('floor_level')}
-                error={!!errors.floor_level}
-                helperText={errors.floor_level?.message}
-                disabled={loading}
-              />
-            </Grid>
-
-            {/* Description */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
-                multiline
-                rows={3}
-                {...register('description')}
-                error={!!errors.description}
-                helperText={errors.description?.message}
-                disabled={loading}
-              />
-            </Grid>
-
-            {/* Image Upload */}
-            <Grid item xs={12}>
-              <Box sx={{ border: '1px dashed grey', p: 2, borderRadius: 1, textAlign: 'center' }}>
-                {!previewUrl ? (
-                  <>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Space Photo
-                    </Typography>
-                    <Button
-                      component="label"
-                      variant="outlined"
-                      size="small"
-                      startIcon={<CloudUploadIcon />}
-                      disabled={loading}
-                    >
-                      Select Image
-                      <input 
-                        type="file" 
-                        hidden 
-                        accept="image/*" 
-                        onChange={handleImageSelect}
-                      />
-                    </Button>
-                  </>
-                ) : (
-                  <Box sx={{ position: 'relative' }}>
-                    <img 
-                      src={previewUrl} 
-                      alt="Preview" 
-                      style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '4px' }} 
-                    />
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={handleRemoveImage}
-                      sx={{ position: 'absolute', top: 5, right: 5, bgcolor: 'rgba(255,255,255,0.8)' }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
-                )}
-              </Box>
-            </Grid>
-
-          </Grid>
-        </DialogContent>
+    <Modal
+      isOpen={open}
+      onClose={onClose}
+      title={initialData ? 'Edit Space' : 'Add New Space'}
+      className="max-w-lg"
+      footer={footer}
+    >
+      <form id="space-form" onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         
-        <DialogActions>
-          <Button onClick={onClose} disabled={loading}>Cancel</Button>
-          <Button type="submit" variant="contained" disabled={loading}>
-            {loading ? 'Saving...' : initialData ? 'Update Space' : 'Save Space'}
-          </Button>
-        </DialogActions>
+        {/* Parent Facility Dropdown */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-ios-label">Parent Facility</label>
+          <div className="relative">
+            <Controller
+              name="parent_facility_id"
+              control={control}
+              render={({ field }) => (
+                <select
+                  {...field}
+                  disabled={loading || loadingFacilities}
+                  className="flex w-full appearance-none rounded-ios border border-transparent bg-ios-bg px-3 py-2 text-sm text-ios-label shadow-ios-sm focus:outline-none focus:ring-2 focus:ring-ios-blue disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Select a facility...</option>
+                  {facilities.map((facility) => (
+                    <option key={facility.id} value={facility.id}>
+                      {facility.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ios-gray2 pointer-events-none" />
+          </div>
+          {errors.parent_facility_id && <p className="text-xs text-ios-red">{errors.parent_facility_id.message}</p>}
+        </div>
+
+        {/* Name */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-ios-label">Space Name</label>
+          <Input
+            placeholder="e.g., Room 101, Dean's Office"
+            {...register('name')}
+            error={errors.name?.message}
+            disabled={loading}
+          />
+        </div>
+
+        {/* Floor Level */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-ios-label">Floor Level</label>
+          <Input
+            placeholder="e.g., 1st Floor"
+            {...register('floor_level')}
+            error={errors.floor_level?.message}
+            disabled={loading}
+          />
+        </div>
+
+        {/* Description */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-ios-label">Description</label>
+          <textarea
+            className="flex w-full rounded-ios border border-transparent bg-ios-bg px-3 py-2 text-sm text-ios-label placeholder:text-ios-gray2 shadow-ios-sm focus:outline-none focus:ring-2 focus:ring-ios-blue disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px]"
+            placeholder="Brief description..."
+            {...register('description')}
+            disabled={loading}
+          />
+          {errors.description && <p className="text-xs text-ios-red">{errors.description.message}</p>}
+        </div>
+
+        {/* Image Upload */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-ios-label">Space Photo</label>
+          <div className="rounded-ios border border-dashed border-ios-gray3 p-4 text-center hover:bg-ios-gray6/50 transition-colors">
+            {!previewUrl ? (
+              <div className="flex flex-col items-center gap-2">
+                <Upload className="h-8 w-8 text-ios-gray2" />
+                <div className="text-xs text-ios-secondaryLabel">
+                  <label className="cursor-pointer font-medium text-ios-blue hover:underline">
+                    Upload a file
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={handleImageSelect} 
+                    />
+                  </label>
+                  <p>PNG, JPG up to 5MB</p>
+                </div>
+              </div>
+            ) : (
+              <div className="relative">
+                <img 
+                  src={previewUrl} 
+                  alt="Preview" 
+                  className="h-40 w-full object-cover rounded-ios"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute top-2 right-2 rounded-full bg-black/50 p-1.5 text-white hover:bg-ios-red transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
       </form>
-    </Dialog>
+    </Modal>
   );
 }

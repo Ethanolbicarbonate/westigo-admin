@@ -1,22 +1,17 @@
 import { useLocation } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Box, IconButton, Badge } from '@mui/material';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import MenuIcon from '@mui/icons-material/Menu';
-
-// Must match the width used in Sidebar.jsx
-const drawerWidth = 260;
+import { Menu, Bell } from 'lucide-react';
 
 export default function Header({ onMobileToggle }) {
   const location = useLocation();
 
-  // Dynamic Title based on current route
+  // Dynamic Title mapping
   const getPageTitle = (path) => {
     switch (path) {
       case '/': return 'Dashboard Overview';
-      case '/facilities': return 'Facilities Management';
-      case '/spaces': return 'Space Management';
-      case '/events': return 'Campus Events';
-      case '/lists': return 'Master Data Lists';
+      case '/facilities': return 'Facilities';
+      case '/spaces': return 'Spaces';
+      case '/events': return 'Events';
+      case '/lists': return 'Master Lists';
       default: return 'Westigo Admin';
     }
   };
@@ -24,43 +19,35 @@ export default function Header({ onMobileToggle }) {
   const title = getPageTitle(location.pathname);
 
   return (
-    <AppBar
-      position="fixed"
-      elevation={0}
-      sx={{
-        width: { sm: `calc(100% - ${drawerWidth}px)` },
-        ml: { sm: `${drawerWidth}px` },
-        bgcolor: 'background.paper',
-        color: 'text.primary',
-        borderBottom: '1px solid rgba(0, 0, 0, 0.12)'
-      }}
-    >
-      <Toolbar>
-        {/* Mobile Menu Toggle (Visible only on small screens) */}
-        <IconButton
-          color="inherit"
-          aria-label="open drawer"
-          edge="start"
-          onClick={onMobileToggle}
-          sx={{ mr: 2, display: { sm: 'none' } }}
-        >
-          <MenuIcon />
-        </IconButton>
+    <header className="sticky top-0 z-30 w-full border-b border-ios-separator/50 bg-ios-bg/80 backdrop-blur-md supports-[backdrop-filter]:bg-ios-bg/60">
+      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+        
+        {/* Left: Mobile Toggle & Title */}
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            className="lg:hidden -ml-2 p-2 text-ios-label hover:bg-black/5 rounded-full transition-colors"
+            onClick={onMobileToggle}
+          >
+            <span className="sr-only">Open sidebar</span>
+            <Menu className="h-6 w-6" />
+          </button>
+          
+          <h1 className="text-xl font-bold text-ios-label tracking-tight">
+            {title}
+          </h1>
+        </div>
 
-        {/* Page Title */}
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
-          {title}
-        </Typography>
-
-        <Box sx={{ flexGrow: 1 }} />
-
-        {/* Quick Actions (Placeholder) */}
-        <IconButton size="large" color="inherit">
-          <Badge badgeContent={0} color="error">
-            <NotificationsIcon />
-          </Badge>
-        </IconButton>
-      </Toolbar>
-    </AppBar>
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2">
+          <button className="p-2 text-ios-secondaryLabel hover:text-ios-label hover:bg-black/5 rounded-full transition-colors relative">
+            <span className="sr-only">View notifications</span>
+            <Bell className="h-5 w-5" />
+            {/* Notification Dot */}
+            <span className="absolute top-2 right-2.5 h-2 w-2 rounded-full bg-ios-red ring-2 ring-white" />
+          </button>
+        </div>
+      </div>
+    </header>
   );
 }

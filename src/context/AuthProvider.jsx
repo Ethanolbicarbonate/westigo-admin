@@ -8,56 +8,74 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   
-  const lastUserId = useRef(null);
+  const mounted = useRef(true);
 
   useEffect(() => {
-    let mounted = true;
+    mounted.current = true;
 
-    // Listen for Auth Changes (This handles Initial Load AND Updates)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
+    // 1. Define the logic to process a session safely
+    const handleSession = async (currentUser) => {
+      if (!mounted.current) return;
 
-        // Ignore token refreshes to prevent flickering
-        if (event === 'TOKEN_REFRESHED') return;
+      // Update user state immediately
+      setUser(currentUser);
 
-        const currentUser = session?.user || null;
-
-        // Avoid duplicate processing if the user hasn't changed
-        if (currentUser?.id === lastUserId.current) {
-          // Just update the object reference, don't re-run admin checks
-          setUser(currentUser);
-          return; 
+      if (currentUser) {
+        // If we have a user, check admin status
+        try {
+          const adminStatus = await authService.isAdmin();
+          if (mounted.current) setIsAdmin(adminStatus);
+        } catch (error) {
+          console.error('Admin check error:', error);
+          if (mounted.current) setIsAdmin(false);
         }
+      } else {
+        // No user
+        if (mounted.current) setIsAdmin(false);
+      }
 
-        // Update Ref and State
-        lastUserId.current = currentUser?.id || null;
-        setUser(currentUser);
-        
-        if (currentUser) {
-          setLoading(true);
-          try {
-            // Check Admin Status
-            const adminStatus = await authService.isAdmin();
-            if (mounted) setIsAdmin(adminStatus);
-          } catch (error) {
-            console.error('Error checking admin status:', error);
-            if (mounted) setIsAdmin(false);
-          } finally {
-            if (mounted) setLoading(false);
-          }
-        } else {
-          // Not logged in
-          if (mounted) {
-            setIsAdmin(false);
-            setLoading(false);
-          }
+      // ALWAYS turn off loading when done
+      if (mounted.current) setLoading(false);
+    };
+
+    // 2. Run Immediate Check (Fixes "Listener didn't fire" issue)
+    const initAuth = async () => {
+      try {
+        // Use getSession instead of getUser to avoid network hangs on mobile
+        const { data: { session } } = await supabase.auth.getSession();
+        await handleSession(session?.user ?? null);
+      } catch (err) {
+        console.error('Init auth failed:', err);
+        if (mounted.current) setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // 3. Listen for future changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        // We handle the initial load manually above, so we can ignore the initial event
+        // OR just process updates. This is a simple way to keep sync.
+        if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT') {
+           setLoading(true); // Show spinner briefly during state change
+           handleSession(session?.user ?? null);
         }
       }
     );
 
+    // 4. SAFETY VALVE: Force stop loading after 6 seconds
+    // This guarantees the app NEVER gets stuck on an infinite spinner
+    const safetyTimeout = setTimeout(() => {
+      if (loading && mounted.current) {
+        console.warn('⚠️ Auth timed out! Forcing app load.');
+        setLoading(false);
+      }
+    }, 6000);
+
     return () => {
-      mounted = false;
+      mounted.current = false;
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);
